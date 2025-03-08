@@ -25,7 +25,7 @@ const downloadPort = process.env.DOWNLOAD_PORT || 5001;
 const API_KEY = process.env.API_KEY || "wetrbctyrt23r672429346b8cw9b8erywueyr7123647326489bc18yw89eucr9b1287346bc1ywuerbqwyueirybcqy98r761b237489656231892erbcw89biuo12u3468sdgn01298nc8n1ndi2n8u1nw9dn3717nspskfnw9731n0237461928ubc762yuebcqiwub127934";
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://rsizevideo.com";
 const ZOHO_MAIL_FROM = process.env.ZOHO_MAIL_FROM || "mail.rsizevideo@rsizevideo.com";
-const ZOHO_MAIL_PASSWORD = "pass";
+const ZOHO_MAIL_PASSWORD = "PASS";
 
 // Resource configuration
 const MAX_MEMORY = 4 * 1024; // 4GB in MB
@@ -75,10 +75,7 @@ async function sendEmailNotification(email, videoData) {
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-              <polyline points="14 2 14 8 20 8"/>
-            </svg>
+            <img src="${FRONTEND_URL}/logo.png" alt="Logo" style="width: 120px; height: auto;" />
           </div>
 
           <h1 style="color: #2563eb; text-align: center; margin-bottom: 30px;">¡Tu video está listo!</h1>
@@ -108,10 +105,22 @@ async function sendEmailNotification(email, videoData) {
                 <div style="color: #6b7280; font-size: 14px;">Nuevo tamaño</div>
               </div>
             </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+              <div style="font-size: 16px; color: #4b5563; margin-bottom: 10px;">
+                Nombre del archivo: <span style="color: #2563eb;">${videoData.filename}</span>
+              </div>
+              <div style="font-size: 16px; color: #4b5563;">
+                Tiempo de procesamiento: <span style="color: #2563eb;">${(videoData.compressionTime / 60).toFixed(1)} minutos</span>
+              </div>
+            </div>
           </div>
 
           <div style="text-align: center; margin-bottom: 30px;">
-            <a href="${downloadUrl}" style="display: inline-block; background-color: #2563eb; color: white; font-weight: bold; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px;">Ver y Descargar Video</a>
+            <a href="${downloadUrl}" 
+               style="display: inline-block; background-color: #2563eb; color: white; font-weight: bold; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px;">
+              Ver y Descargar Video
+            </a>
           </div>
 
           <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
@@ -453,7 +462,8 @@ processingApp.post("/process-video", validateApiKey, upload.single("video"), asy
         estimatedReductionPercentage: (100 - (targetSizeMB / originalSizeMB) * 100).toFixed(2),
         emailNotification: true,
         email,
-        status: 'processing'
+        status: 'processing',
+        downloadUrl: `/download/${uniqueId}`
       });
 
       (async () => {
@@ -489,7 +499,8 @@ processingApp.post("/process-video", validateApiKey, upload.single("video"), asy
             filename: outputFilename,
             originalSize,
             newSize,
-            reductionPercentage: reductionPercentage.toFixed(2)
+            reductionPercentage: reductionPercentage.toFixed(2),
+            compressionTime
           });
 
           await fs.unlink(inputPath);
@@ -538,7 +549,8 @@ processingApp.post("/process-video", validateApiKey, upload.single("video"), asy
         newSize,
         reductionPercentage: reductionPercentage.toFixed(2),
         compressionTime,
-        status: 'completed'
+        status: 'completed',
+        downloadUrl: `/download/${uniqueId}`
       });
     }
   } catch (error) {
@@ -551,6 +563,7 @@ processingApp.post("/process-video", validateApiKey, upload.single("video"), asy
     res.status(500).json({ error: "Failed to process video" });
   }
 });
+
 // Add this new endpoint after the process-video endpoint
 processingApp.get("/video-status/:id", validateApiKey, async (req, res) => {
   const { id } = req.params;
@@ -569,6 +582,7 @@ processingApp.get("/video-status/:id", validateApiKey, async (req, res) => {
     res.status(404).json({ error: "Video not found" });
   }
 });
+
 // Download endpoint
 downloadApp.get("/download-video/:id/:filename", cache(60), async (req, res) => {
   const { id, filename } = req.params;
